@@ -186,6 +186,6 @@ export default handler;
 
   return [typesFileMetadata, handlerFileMetadata];
 
-}
+};
 
-module.exports = templater
+module.exports = templater;

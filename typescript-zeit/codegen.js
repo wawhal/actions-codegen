@@ -114,7 +114,7 @@ const templater = async (
           });
           requiredTypesToImport[argTypeMetadata.typename] = true;
         }
-      } else { 
+      } else {
         argumentType.fields.push({
           name: ma.name.value,
           type: getTypescriptTypename(`Scalar['${argTypeMetadata.typename}']`, argTypeMetadata.stack)
@@ -131,13 +131,13 @@ import { NowRequest, NowResponse } from '@now/node'
 import {
 ${Object.keys(requiredTypesToImport).map(rt => `  ${rt}`).join(',\n')}
 } from './hasuraCustomTypes';
-`;  
+`;
     };
 
     const getMutationInputType = () => {
       return `
 type ${argumentType.name} = {
-${argumentType.fields.map(f => `  ${f.name}: ${f.type}`).join(',\n')} 
+${argumentType.fields.map(f => `  ${f.name}: ${f.type}`).join(',\n')}
 }
 `;
     }
@@ -149,6 +149,7 @@ const handler = async (request: NowRequest, response: NowResponse) => {
 
   // perform your business logic here
 
+  /*
   In case of error,
 
   return response.status(400).json({

@@ -68,9 +68,9 @@ const validate = (requestInput) => {
   )
   let responseBody = await response.json();
   if (responseBody.data) {
-    return response.json(Object.values(responseBody.data)[0])
+    return res.json(Object.values(responseBody.data)[0])
   } else if (responseBody.errors) {
-    return response.status(400).json(Object.values(responseBody.errors)[0])
+    return res.status(400).json(Object.values(responseBody.errors)[0])
   }
 `
 

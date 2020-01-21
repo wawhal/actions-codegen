@@ -25,7 +25,7 @@ const templater = (actionName, actionsSdl, derive) => {
 
   let graphqlClientCode = '';
   let mutationCodegen = '';
-
+  let validateFunction = '';
 
   if (derive && derive.mutation && derive.mutation.name) {
     const getSampleValue = (typename) => {
@@ -33,7 +33,7 @@ const templater = (actionName, actionsSdl, derive) => {
         case 'String':
           return 'sample value';
         case 'Int':
-          return ''
+          return 111
         case 'uuid':
           return '66e7a19a-6d5b-4851-b6e0-ea14a6f32cff';
         case 'date':
@@ -44,66 +44,16 @@ const templater = (actionName, actionsSdl, derive) => {
           return 'sample value'
       }
     };
-    const refMutationName = derive.mutation.name;
-    const hasuraSchema = buildClientSchema(derive.introspection_schema);
-    const mutationType = hasuraSchema._mutationType;
-    const allMutations = mutationType._fields;
-    const refMutation = allMutations[refMutationName];
-    const nonNullableArguments = {};
-    refMutation.args.forEach(a => {
-      if (!isNonNullType(a.type)) return;
-      let isList = false;
-      const argFields = {};
-      let _type = Object.assign(Object.create(a.type), a.type);
-      while (isWrappingType(_type)) {
-        if (isListType(_type)) {
-          isList = true;
-        }
-        _type = _type.ofType;
-      }
-      if (_type._fields) {
-        Object.values(_type._fields).forEach(f => {
-          if (isScalarType(f.type)) {
-            argFields[f.name] = getSampleValue(f.type.name)
-          }
-        })
-      }
-      nonNullableArguments[a.name] = {
-        name: a.name,
-        type: _type.name,
-        isList,
-        argFields
-      }
-    })
-
-    const varDefCodegen = Object.values(nonNullableArguments).map(a => {
-      const argType = a.isList ? `[${a.type}!]!` : `a.type`
-      return `    $_${a.name}: ${argType}`
-    }).join('\n');
-
-    const mutationArgCodegen = Object.values(nonNullableArguments).map(a => {
-      const argType = a.isList ? `[${a.type}!]!` : `a.type`
-      return `      ${a.name}: $_${a.name}`
-    }).join('\n');
 
     mutationCodegen = `
-const HASURA_MUTATION = \`
-  mutation (
-${varDefCodegen}
-  ) {
-    ${refMutationName} (
-${mutationArgCodegen}
-    ) {
-      affected_rows
-    }
-  }
-\`;
-`;
+const HASURA_MUTATION = \`${derive.mutation.name}\`;`;
 
-  const varCodegen = Object.values(nonNullableArguments).map(a => {
-    const varValue = a.isList ? `[${JSON.stringify(a.argFields)}]` : JSON.stringify(a.argFields);
-    return `          "_${a.name}": ${varValue}`
-  }).join(',\n');
+  validateFunction = `
+const validate = (requestInput) => {
+  // Perform your validation/cleanup here
+  return requestInput
+};
+  `
 
   graphqlClientCode = `
   let response = await fetch(
@@ -112,14 +62,16 @@ ${mutationArgCodegen}
       method: 'POST',
       body: JSON.stringify({
         query: HASURA_MUTATION,
-        variables: {
-${varCodegen}
-        }
+        variables: validate(requestInput)
       })
     }
   )
-
   let responseBody = await response.json();
+  if (responseBody.data) {
+    return response.json(Object.values(responseBody.data)[0])
+  } else if (responseBody.errors) {
+    return response.status(400).json(Object.values(responseBody.errors)[0])
+  }
 `
 
   }
@@ -127,23 +79,24 @@ ${varCodegen}
   const handlerContent = `
 ${derive ? 'const fetch = require("node-fetch")' : ''}
 ${derive ? mutationCodegen : ''}
+${derive ? validateFunction : ''}
 const handler = async (req, res) => {
-${derive ? graphqlClientCode : ''}  
 
+  const requestInput = req.body.input;
+
+${derive ? graphqlClientCode : ''}  
   /*
 
   In case of errors:
   
   return res.status(400).json({
-    errors: {
-      code: '<error code>',
-      message: "error happened"
-    }
+    message: "error happened"
   })
 
   */
 
-  return res.json({ data: {} })
+  return res.json({})
+
 }
 
 module.exports = handler;

@@ -22,80 +22,102 @@ const templater = (actionName, actionsSdl, derive) => {
   }
   const mutationName = mutationDef.name.value;
   const mutationArguments = mutationDef.arguments;
+  let mutationOutputType = mutationDef.type;
+
+  while (mutationOutputType.kind !== 'NamedType') {
+    mutationOutputType = mutationOutputType.type;
+  }
+  const outputType = ast.definitions.find(d => {
+    return (d.kind === 'ObjectTypeDefinition' && d.name.value === mutationOutputType.name.value)
+  });
+
+  const outputTypeFields = outputType.fields.map(f => f.name.value);
 
   let graphqlClientCode = '';
   let mutationCodegen = '';
   let validateFunction = '';
+  let errorSnippet = '';
+  let successSnippet = '';
+  let executeFunction = '';
+
+  const requestInputDestructured = `{ ${mutationDef.arguments.map(a => a.name.value).join(', ')} }`;
 
   if (derive && derive.mutation && derive.mutation.name) {
-    const getSampleValue = (typename) => {
-      switch(typename) {
-        case 'String':
-          return 'sample value';
-        case 'Int':
-          return 111
-        case 'uuid':
-          return '66e7a19a-6d5b-4851-b6e0-ea14a6f32cff';
-        case 'date':
-          return '2019-12-11';
-        case 'timestamptz':
-          return '2019-12-11T13:55:45.070803+00:00'
-        default:
-          return 'sample value'
-      }
-    };
+
+    const operationDoc = parse(derive.mutation.name);
+    const operationName = operationDoc.definitions[0].selectionSet.selections.filter(s => s.name.value.indexOf('__') !== 0)[0].name.value;
 
     mutationCodegen = `
 const HASURA_MUTATION = \`${derive.mutation.name}\`;`;
 
-  validateFunction = `
-const validate = (requestInput) => {
-  // Perform your validation/cleanup here
-  return requestInput
-};
-  `
-
-  graphqlClientCode = `
-  let response = await fetch(
+    executeFunction = `
+// execute the parent mutation in Hasura
+const execute = async (variables) => {
+  const fetchResponse = await fetch(
     'http://localhost:8080/v1/graphql',
     {
       method: 'POST',
       body: JSON.stringify({
         query: HASURA_MUTATION,
-        variables: validate(requestInput)
+        variables
       })
     }
-  )
-  let responseBody = await response.json();
-  if (responseBody.data) {
-    return res.json(Object.values(responseBody.data)[0])
-  } else if (responseBody.errors) {
-    return res.status(400).json(Object.values(responseBody.errors)[0])
-  }
-`
+  );
+  return await fetchResponse.json();
+};
+  `
 
+
+    graphqlClientCode = `
+  // execute the Hasura mutation
+  const { data, errors } = await execute(${requestInputDestructured});`
+
+    errorSnippet = `  // if Hasura mutation errors, then throw error
+  if (errors) {
+    return res.status(400).json({
+      message: errors.message
+    })
+  }`;
+
+    successSnippet = `  // success
+  return res.json({
+    ...data.${operationName}
+  })`
+
+  }
+
+  if (!errorSnippet) {
+    errorSnippet = `  /*
+  // In case of errors:
+  return res.status(400).json({
+    message: "error happened"
+  })
+  */`
+  }
+
+  if (!successSnippet) {
+    successSnippet = `  // success
+  return res.json({
+${outputTypeFields.map(f => `    ${f}: "<value>"`).join(',\n')}
+  })`;
   }
 
   const handlerContent = `
 ${derive ? 'const fetch = require("node-fetch")' : ''}
 ${derive ? mutationCodegen : ''}
-${derive ? validateFunction : ''}
+${derive ? executeFunction : ''}
+// Request Handler
 const handler = async (req, res) => {
 
-  const requestInput = req.body.input;
+  // get request input
+  const ${requestInputDestructured} = req.body.input;
 
-${derive ? graphqlClientCode : ''}  
-  /*
+  // run some business logic
+${derive ? graphqlClientCode : ''}
 
-  In case of errors:
-  
-  return res.status(400).json({
-    message: "error happened"
-  })
+${errorSnippet}
 
-  */
-
-  return res.json({})
+${successSnippet}
 
 }
 

@@ -175,10 +175,7 @@ ${outputTypeFields.map(f => `    ${f}: "<value>"`).join(',\n')}
   }
 
   const handlerContent = `import { ${mutationArgType} } from './hasuraCustomTypes';
-${derive ? 'import fetch from "node-fetch"' : ''}
-
-${derive ? mutationCodegen : ''}
-${derive ? executeFunction : ''}
+${derive ? 'import fetch from "node-fetch"\n' : ''}${derive ? `${mutationCodegen}\n` : ''}${derive ? `${executeFunction}\n` : ''}
 // Request Handler
 const handler = async (req, res) => {
 

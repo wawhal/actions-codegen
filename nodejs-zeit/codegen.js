@@ -101,9 +101,7 @@ ${outputTypeFields.map(f => `    ${f}: "<value>"`).join(',\n')}
   }
 
   const handlerContent = `
-${derive ? 'const fetch = require("node-fetch")' : ''}
-${derive ? mutationCodegen : ''}
-${derive ? executeFunction : ''}
+${derive ? 'const fetch = require("node-fetch")\n' : ''}${derive ? `${mutationCodegen}\n` : ''}${derive ? `${executeFunction}\n` : ''}
 // Request Handler
 const handler = async (req, res) => {
 

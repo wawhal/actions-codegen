@@ -1,8 +1,3 @@
-const { buildClientSchema, validate, printSchema, parse, isNonNullType, isListType, isWrappingType, isScalarType} = require('graphql');
-const { codegen } = require('@graphql-codegen/core');
-const typescriptPlugin = require('@graphql-codegen/typescript');
-const { camelize } = require('inflection');
-
 /*Utils*/
 
 const getWrappingTypeMetadata = (_type) => {
@@ -209,5 +204,3 @@ module.exports = handler;
   return [handlerFileMetadata, typesFileMetadata];
 
 }
-
-module.exports = templater;

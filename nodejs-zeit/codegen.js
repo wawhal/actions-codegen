@@ -1,5 +1,3 @@
-const { buildClientSchema, printSchema, parse, isNonNullType, isListType, isWrappingType, isScalarType} = require('graphql');
-
 const templater = (actionName, actionsSdl, derive) => {
 
   const ast = parse(`${actionsSdl}`);
@@ -132,5 +130,3 @@ module.exports = handler;
   return [handlerFile];
 
 }
-
-module.exports = templater;

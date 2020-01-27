@@ -130,5 +130,3 @@ module.exports = handler;
   return [handlerFile];
 
 }
-
-module.exports = templater;

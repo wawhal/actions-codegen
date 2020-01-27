@@ -51,7 +51,8 @@ const templater = async (actionName, actionsSdl, derive) => {
     allMutationFields = [...allMutationFields, ...md.fields]
   });
 
-  const mutationRootDef = ast.definitions.find(d => d.name.value === 'Mutation' && d.kind === 'ObjectTypeDefinition');
+  const mutationRootDef = ast.definitions.find(d => d.name.value === 'Mutation');
+  mutationRootDef.kind = 'ObjectTypeDefinition';
   mutationRootDef.fields = allMutationFields;
   typesAst.definitions.push(mutationRootDef);
 

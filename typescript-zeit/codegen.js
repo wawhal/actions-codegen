@@ -114,13 +114,13 @@ const templater = async (actionName, actionsSdl, derive) => {
 
   const requestInputDestructured = `{ ${mutationDef.arguments.map(a => a.name.value).join(', ')} }`;
 
-  if (derive && derive.mutation && derive.mutation.name) {
+  if (derive && derive.mutation) {
 
-    const operationDoc = parse(derive.mutation.name);
+    const operationDoc = parse(derive.mutation);
     const operationName = operationDoc.definitions[0].selectionSet.selections.filter(s => s.name.value.indexOf('__') !== 0)[0].name.value;
 
     mutationCodegen = `
-const HASURA_MUTATION = \`${derive.mutation.name}\`;`;
+const HASURA_MUTATION = \`${derive.mutation}\`;`;
 
     executeFunction = `
 // execute the parent mutation in Hasura

@@ -126,7 +126,7 @@ const HASURA_MUTATION = \`${derive.mutation}\`;`;
 // execute the parent mutation in Hasura
 const execute = async (variables) => {
   const fetchResponse = await fetch(
-    'http://localhost:8080/v1/graphql',
+    'https://community-call-demo.herokuapp.com/v1/graphql',
     {
       method: 'POST',
       body: JSON.stringify({
